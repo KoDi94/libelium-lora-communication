@@ -1,5 +1,5 @@
 /*
- *  ------ [4-20mA_03] Several Sensor --------
+ *  ------ [4-20mA_03] Libelium EUROPA EUI: 0004A30B00F9AAE8 --------
  */
 
 // Include this library for using current loop functions
@@ -11,24 +11,18 @@
 
 // Instantiate currentLoop object in channel 1.
 #define TEMPERATURE CHANNEL1
-#define MANOMETRO CHANNEL2
-#define GAS CHANNEL3
+#define HUMIDITY CHANNEL2
+#define MANOMETRO1 CHANNEL3
 
 using namespace std;
 
 uint8_t socket = SOCKET0;
 uint8_t error;
 uint8_t PORT =3;
-
-char* data;
-char sensors[] = {TEMPERATURE, MANOMETRO, GAS};
+char sensors[] = {TEMPERATURE, HUMIDITY, MANOMETRO1};
 char* libeliumPrefix = "ffff";
-char* cutData = "";
+char* finalPayload = "";
 int i;
-
-float current = 13.583512746;
-
-// Get the sensor value as a current in mA from SOCKETS
 float current_socket;
 
 
@@ -38,25 +32,25 @@ void setup(){
 }
 
 void loop(){ 
-  strcpy(cutData, "");
-  strcpy(cutData, libeliumPrefix);
+  strcpy(finalPayload, "");
+  strcpy(finalPayload, libeliumPrefix);
   for(i = 0; i <= sizeof(sensors)-1; i++){
     if (currentLoopBoard.isConnected(sensors[i])){
       current_socket = currentLoopBoard.readCurrent(sensors[i]);
-      floatToHex(current_socket, cutData);
+      floatToHex(current_socket, finalPayload);
     }else{
-      //add 0000 to payload
-      USB.println("Sensor not connected...");
+      strcat(finalPayload, "0000");
     }   
   }
-//  strcpy(libeliumPrefix, "");
-//  switchOn();
-//  joinNetworkABP();
-//  switchOff();
+  switchOn();
+  joinNetworkABP();
+  switchOff();
+  USB.println("Payload send to Kerlink: ");
+  USB.println(finalPayload);
   USB.println("***************************************");
   USB.print("\n");
   // Delay after reading.
-  delay(10000);
+  delay(60000);
 }
 
 /*
@@ -64,35 +58,27 @@ void loop(){
  * Convert mA to Hex
  * ========================================
  */
-void floatToHex(float sensorSocket, char* cutData){
+void floatToHex(float sensorSocket, char* finalPayload){
   char buffer[] = "0000";
   char extraZero[] = "0";
   char* hexValue;
-  char* finalPayload;
   
   USB.print("Socket Sensor: ");
   USB.print(sensorSocket);
   USB.println(" mA");
-  
+
+  // remove decimal from reading measurement
   sensorSocket = round(sensorSocket * 100);
 
   if(sensorSocket <= 4095){
     USB.println("Value lower than 4095");
     utoa(sensorSocket, buffer, 16);
     hexValue = strcat(extraZero, buffer);
-    USB.println("-------------HEX VALUE-------------");
-    USB.println(hexValue);
-//    finalPayload = strcat(libeliumPrefix, hexValue);
-//    USB.println("FINAL PAYLOAD: ");
-//    USB.println(finalPayload);
   }else{
     utoa(sensorSocket, buffer, 16);
     hexValue = buffer;
-    USB.println("Value greater than 4095");
-    USB.println(hexValue);
   }
-  strcat(cutData, hexValue);
-  USB.println(cutData);
+  strcat(finalPayload, hexValue);
 }
 
 /*
@@ -151,9 +137,9 @@ void libeliumModuleInfo(){
 }
 
 /*
- * ------------------------------------
+ * ====================================
  * Set up LoRaWan
- * ------------------------------------
+ * ====================================
  */
 void lorawanSetUp(){
 //  uint8_t error;
@@ -197,9 +183,9 @@ void lorawanSetUp(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Socket switch ON
- * -------------------------------
+ * ===============================
  */
 void switchOn(){
   error = LoRaWAN.ON(socket);
@@ -214,9 +200,9 @@ void switchOn(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Power on the Lora circuit
- * -------------------------------
+ * ===============================
  */
 void setPowerOn(){
   // Set Power level
@@ -233,9 +219,9 @@ void setPowerOn(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Enable adaptive data rate
- * -------------------------------
+ * ===============================
  */
 void enableAdaptiveDataRate(){
   // Enable Adaptive Data Rate (ADR)
@@ -256,9 +242,9 @@ void enableAdaptiveDataRate(){
 
 
 /*
- * -------------------------------
+ * ===============================
  * Set device EUI
- * -------------------------------
+ * ===============================
  */
 void setDeviceEui(char DEVICE_EUI[]){
   // Set Device EUI
@@ -286,9 +272,9 @@ void getDeviceEui(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Set APP EUI
- * -------------------------------
+ * ===============================
  */
 void setApplicationEui(char APP_EUI[]){
   // Set Application EUI
@@ -305,9 +291,9 @@ void setApplicationEui(char APP_EUI[]){
 }
 
 /*
- * -------------------------------
- * Set device address(not neededd)
- * -------------------------------
+ * ===============================
+ * Set device address(not needed)
+ * ===============================
  */
 void setDeviceAddress(char DEVICE_ADDR[]){
   // Set Device Address
@@ -339,9 +325,9 @@ void getDeviceAddress(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Set APP KEY
- * -------------------------------
+ * ===============================
  */
 void setApplicationKey(char APP_KEY[]){
   // Set application key
@@ -359,9 +345,9 @@ void setApplicationKey(char APP_KEY[]){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Set Automatic reply to ON
- * -------------------------------
+ * ===============================
  */
 void setAutomaticReply(){
   // Set Automatic Reply
@@ -399,9 +385,9 @@ void getAutomaticReply(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Save Lora configurations
- * -------------------------------
+ * ===============================
  */
 void saveConfiguration(){
   // Save configuration
@@ -425,9 +411,9 @@ void saveConfiguration(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Socket switch ON
- * -------------------------------
+ * ===============================
  */
 void switchOff(){
   // Switch off
@@ -443,9 +429,9 @@ void switchOff(){
 }
 
 /*
- * -------------------------------
+ * ===============================
  * Join Network OTAA
- * -------------------------------
+ * ===============================
  */
 void joinNetworkOTAA(){
   // Join network
@@ -462,9 +448,9 @@ void joinNetworkOTAA(){
 }
 
 /*
- * -----------------------------------------
+ * ==========================================
  * Join Network ABP to send to Lora gateway
- * -----------------------------------------
+ * ==========================================
  */
 void joinNetworkABP(){
   error = LoRaWAN.joinABP();
@@ -476,7 +462,7 @@ void joinNetworkABP(){
 
     // 3. Send Confirmed packet 
 
-    error = LoRaWAN.sendConfirmed( PORT, data);
+    error = LoRaWAN.sendConfirmed( PORT, finalPayload);
 
     // Error messages:
     /*
